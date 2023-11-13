@@ -1,41 +1,16 @@
+# Class SimpleBioreactor
+#
+# General class to hold equations in OOP manner that is compatible
+# with GEKKO framework
+#
+# TO DO: Add docstrings and comments
+
+
 import numpy as np
 from gekko import GEKKO
 import matplotlib.pyplot as plt
 import math
 #from MBequations import *
-class SimulationInput:
-    def __init__(self,inputs=None,**kwargs):
-        if not inputs:
-    
-            const_list=[
-                    'Y_xs','K_d','mu_max', 'K_i', "m",  "n", "K_s", "X_m", "S_m","K_1","K_2"
-                    ]
-    
-            var_list = [
-                    "X","S","P"
-                    ]
-            equations_specification = ['growth_type', 'biomass_eq_type','substrate_eq_type']
-            self.constants =  {key: 
-                            (dict(kwargs.items())[key] if key in dict(kwargs.items()) else None)
-                            for key in const_list
-                            }
-    
-            self.variables =  {key: 
-                                (dict(kwargs.items())[key] if key in dict(kwargs.items()) else None)
-                                for key in var_list
-                                }
-            
-            self.equations_specification =  {key: 
-                                (dict(kwargs.items())[key] if key in dict(kwargs.items()) else None)
-                                for key in equations_specification
-                                }
-        else:
-            self.constants, self.variables, self.equations_specification = inputs
-
-    def get_inputs(self):
-        return (self.constants, self.variables, self.equations_specification)
-    def copy(self):
-        return SimulationInput(inputs = self.get_inputs())
 
 
 class SimpleBioreactor:
