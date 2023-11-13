@@ -3,7 +3,7 @@
 # General class to hold equations in OOP manner that is compatible
 # with GEKKO framework
 #
-# TO DO: Add docstrings and comments
+# TO DO: Add comments
 
 
 import numpy as np
@@ -14,6 +14,28 @@ import math
 
 
 class SimpleBioreactor:
+    """
+    class SimpleBioreactor(time_arr:itter , simulation_input: SimulationInput.get(), name: str)
+
+    Basic class for thats integrates user input into GEKKO model, performs and holds 
+    results of simulations. It intakes user input passed throught SimulationInput
+    and unpack it at init to assign them to own attributes and translate them to
+    expression compatible with GEKKO framework. Except for simulation_input tuple
+    also time_arr argument has to be satisfied for instance init, which is a 1d 
+    list of numericals, such as the one retrived with numpy.linspace. This variable
+    determines lenght of simulations (in h) and number of samples ( len of the variable)
+    to be passed into the GEKKO model. Name argument is set to 'Bioreactor' by
+    default and its main role is to serve as a title component for inbuilt plotting functions.
+
+    Methods:
+        SimpleBioreactor.solve() - Solves passed equations by running inner GEKKO model
+
+        SimpleBioreactor.plot() - Plots results of performed simulation, by displaying change of 
+        variables over time.
+
+        SimpleBioreactor.add_constant( name:str , value: float) - adds another constants to your model.
+        Nevertheless user needs to make sure that it will not be a foster constant.
+    """
 
     def __init__(self,  time_arr, simulation_input, name="Bioreactor"):
 
@@ -157,13 +179,33 @@ class SimpleBioreactor:
 
 
     def add_constant(self, name: str, value):
+        """
+        SimpleBioreactor.add_constant(name: str, value: float)
+
+        Function that add a new constants to a model. A new constant
+        is set a new variable.
+        """
         setattr(self, name, self.model.Const(value=value,name=name))
 
     def solve(self):
+        """
+        SimpleBioreactor.solve()
+
+        Alias function enabling solving equations with the instance, instead
+        of attribute call.
+
+        Is an equivalent of:
+            SimpleBioreactor.model.solve(display=False)
+        """
         self.model.solve(display=False)
 
 
     def plot(self):
+        """
+        SimpleBioreactor.plot()
+
+        Plots result of the simulation
+        """
        
         def latex_convert(name):
             name = name.split("_")
