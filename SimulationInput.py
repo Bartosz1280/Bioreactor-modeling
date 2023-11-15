@@ -6,8 +6,6 @@
 #
 # TODO : Implement fully __str__
 # refraction code on # REFRACTION NEEDED
-# Implement equation pasing after initialization by moving sub-function from __init__ to
-# class methods.
 
 
 
@@ -35,73 +33,17 @@ class SimulationInput:
 
     Methods:
         - SimulationInput.get_inputs() - return a tuple that is unpacked by instance of SimpleBioreactor
-        - SimulationInput.__str__()
         - SimulationInput.copy() - reaturn an instance of SimulationInput containing the same attrbitues as 
         the instance in which the method was called.
+        - SimulationInput.add_equation(equation) - allows to adding a new equation after instance declaration
+        in a way that can be intepreted by SimpleBioreactor as part of an input tuple.
+        - SimulationInput.__str__()
+
 
     """
 
     def __init__(self,inputs=None,**kwargs):
         # Functions used for proper handling of equations
-        def fix_spacing(equation: str):
-            """
-            Sometimes an equation might be pased with not coherent spacing, hindering proper str
-            to equation conversion. To avoid these problems and make the code
-            simpler be defualt each equations is passed into that function.
-
-            Except for that using that function returns an equation in human redable string.
-            """
-            universal_math_operators = [
-                   "+" , "-" , "*","**",
-                   "/",  "(" , ")" , "[","]"]
-            equation = "".join(equation.split(" "))
-            # Makes sure that power will not be mistook for multiplication
-            equation = " ^ ".join(equation.split("**"))
-            # First loop takes care of correct spacing for universal operators
-            for i in universal_math_operators: # MIGHT REQUIRE SOME DEBUGGING !
-                equation = f" {i} ".join(equation.split(i))
-            equation = "**".join(equation.split("^"))
-            
-            return equation
-
-        def cast_equation_to_python_str(equation: str):
-            """
-            This function transforms a human redable equation string to
-            one that can be intepreted by python.
-            """
-            universal_math_operators = [
-                   "+" , "-" , "*","**",
-                   "/",  "(" , ")" , "[","]"]
-            # Using additonal list shall allows easier passing of the formula by 
-            # using some popular notation that is not recogniazable by python.
-            popular_math_operators=["^", "ln","log", "exp"]
-            # Its vital to pass correctly spaced formula for the function, 
-            # since it itterates through a list not a string.
-            equation_list = equation.split(" ")
-            for i in equation_list:
-                try:
-                    float(i)
-                    # If false tries to determine if i is var/conts 
-                    # or mathematical operation
-                except ValueError:
-                        # Grabs mathematical operation to convert it 
-                        # to python redable expression
-                    if i in popular_math_operators:
-                        match i:
-                            case "^":
-                                equation_list[equation_list.index(i)] = "**"
-                            case "ln":
-                                equation_list[equation_list.index(i)] = "math.ln"
-                            case "log":
-                                equation_list[equation_list.index(i)] = "math.log"
-                            case "exp":
-                                equation_list[equation_list.index(i)] = "math.exp"
-                    # Remainig possiblity is that i is var/const
-                    elif i not in universal_math_operators and i !="":
-                        equation_list[equation_list.index(i)] = f"self.{i}"
-
-            return "".join(equation_list)
-
         # When kwargs are passed an instance fill atrributues with some general
         # variables and constants assigned to None, unless specified.
         # Setting parameter to None instead of zero is required for predictable and
@@ -158,8 +100,8 @@ class SimulationInput:
                 # to force passing a defined minimal input to run a model, thus 
                 # checking inputs a step before passing them to the model.
                 try:
-                    spaced_equation = fix_spacing(self.equations[key])
-                    python_equation = cast_equation_to_python_str(spaced_equation)
+                    spaced_equation = self._fix_spacing(self.equations[key])
+                    python_equation = self._cast_equation_to_python_str(spaced_equation)
                     # To retain more human redable version both equations
                     # are passed to a tuple which becomes a new value for a key
                     self.equations[key] = (spaced_equation, python_equation)
@@ -172,8 +114,11 @@ class SimulationInput:
         else:
             self.constants, self.variables, self.equations_specification = inputs
 
+# End of __init__
+
     def __str__(self):
-        def translate_none(value):
+
+        def translate_none(value): # CURRENTLY AND ORPHANT FUNCTION
             """
             To avoid error when a key with None value existis in attrbitues,
             it will be translated into a string.
@@ -182,6 +127,7 @@ class SimulationInput:
                 return("Undefined")
             else:
                 return value
+
         def get_number_of_defined_keys(atr_dict):
             """
             Returns a tuple of var/const, where ind 0 gives a number
@@ -204,7 +150,7 @@ class SimulationInput:
         ]
         return "\n".join(text)
 
-
+# Class methods
     def get_inputs(self):
         """
         SimulationInput.get_inputs()
@@ -234,4 +180,121 @@ class SimulationInput:
 
         return SimulationInput(inputs = self.get_inputs())
 
+    def add_equation(self, equation: str):
+        """
+        SimulationInput.add_equation(equation: str)
+
+        Method for parsing new equation after SimulationInput instance 
+        is initialized. Unlike manual declation of a new key in equations
+        attributes, using this function ensures that the equation will be 
+        in a version compatible with SimpleBioreactor instance, by handling
+        all equations string transformations.
+
+        INPUT: equation: str - An equation to be added to the instance in form of string
+        """
+        class EquationError (Exception):
+            "Custom exception to be raised if wrong equation is passed"
+            def __init__(self, msg: str):
+                self.message = msg
+                super().__init__(self.message)
+
+        # First the function will ensure that the input contians a full equation by
+        # determing if the expresion contains = 
+        if "=" not in equation:
+            raise EquationError(
+                f"Passed {equation} does not appears to be a full expresion. Ensure it contains = ")
+        # In case an input contains multiple = , instead of rising ValueError a custim EquationError
+        # is raised with most probable cause of an error.
+        try:
+            variable , expression = equation.split("=")
+        except ValueError:
+            raise EquationError(f"{equation} appears to have multiple = " )
+        # At the second stange function will ensure that  the passed equation has only one
+        # varaible on its left side.
+        if len(list(filter(lambda x: x != "", variable.split(" "))))  > 1:
+            raise EquationError(f"Passed {equation} appears to describe multiple dependent variables.")
+
+        equation = self._fix_spacing(expression)
+        python_equation = self._cast_equation_to_python_str(equation)
+        # To retain more human redable version both equations
+        # are passed to a tuple which becomes a new value for a key
+        self.equations[variable] = (equation, python_equation)
+        print(f"> {variable} = {equation} was added")
+        
+# Secret functions
+
+    def _fix_spacing(self, equation: str):
+        """
+        Hidden function - Previously a sub-function of __init__ 
+
+        Fixes not coherent spacing in passed equation and translat
+        some popular mathematical operations formating to version
+        correct with python syntax.
+
+        Function should be used on an input before it is passed to 
+        _cast_equation_to_python_str function to ensure that function
+        will correctly rewrite the expression.
+
+        INPUT: equation: str - string containg a mathematical equation
+        OUTPUT: equation string that is evenly spaced, thus will be 
+        correctly processed bu _cast_equation_to_python_str function
+        """
+        universal_math_operators = [
+               "+" , "-" , "*","**",
+               "/",  "(" , ")" , "[","]"]
+        equation = "".join(equation.split(" "))
+        # Makes sure that power will not be mistook for multiplication
+        equation = " ^ ".join(equation.split("**"))
+        # First loop takes care of correct spacing for universal operators
+        for i in universal_math_operators: # MIGHT REQUIRE SOME DEBUGGING !
+            equation = f" {i} ".join(equation.split(i))
+        equation = "**".join(equation.split("^"))
+        
+        return equation
+
+    def _cast_equation_to_python_str(self, equation: str):
+        """
+        Hidden function - Previously a sub-function of __init__
+
+        This function transforms a human redable equation string to
+        one that can be intepreted by python with its math library.
+
+        Befor applying this function on any equation string an input
+        should be processed by _fix_spacing function for stable and 
+        intended string manipulation.
+        """
+
+        universal_math_operators = [
+               "+" , "-" , "*","**",
+               "/",  "(" , ")" , "[","]"]
+        # Using additonal list shall allows easier passing of the formula by 
+        # using some popular notation that is not recogniazable by python.
+        popular_math_operators=["^", "ln","log", "exp"]
+        # Its vital to pass correctly spaced formula for the function, 
+        # since it itterates through a list not a string.
+        equation_list = equation.split(" ")
+
+        for i in equation_list:
+            try:
+                float(i)
+                # If false tries to determine if i is var/conts 
+                # or mathematical operation
+            except ValueError:
+                    # Grabs mathematical operation to convert it 
+                    # to python redable expression
+                if i in popular_math_operators:
+                    match i:
+                        case "^":
+                            equation_list[equation_list.index(i)] = "**"
+                        case "ln":
+                            equation_list[equation_list.index(i)] = "math.ln"
+                        case "log":
+                            equation_list[equation_list.index(i)] = "math.log"
+                        case "exp":
+                            equation_list[equation_list.index(i)] = "math.exp"
+                # Remainig possiblity is that i is var/const
+                elif i not in universal_math_operators and i !="":
+                    equation_list[equation_list.index(i)] = f"self.{i}"
+
+        return "".join(equation_list)
 
