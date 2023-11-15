@@ -1,25 +1,44 @@
-# HEAD :  Class SimulationInputMaker
+# HEAD :  Class SimulationInput
 #
 # Class for easy creation of input for Bioreactor
 # by class declatation
 #
-# BUG:  line 135 equations should be strings not None
 #
-# TODO : Implement functions for handling equations 
-# from string.
+# TODO : Implement fully __str__
+# refraction code on # REFRACTION NEEDED
+# Implement equation pasing after initialization by moving sub-function from __init__ to
+# class methods.
 
 
 
 class SimulationInput:
     """
-    Class SimulationInput (**kwargs)
+    Class SimulationInput (inputs=None, **kwargs)
 
     Is the class for creating, handling and outputing parameters used by
     different optimization models. Each kwargs should be a name of contant
     or variable, or equation(passed as string). An instance will hold a
     multiple basics variables and constans assigned by default to zero, when no
-    **kwargs are passed. After being initialized an instansce holds most data as dictionaries bounded
-    to its attributes.
+    **kwargs are passed. After being initialized an instansce holds most data as
+    dictionaries bounded to its attributes. 
+    An instnace can be initialized as well by passing input tuple to inputs parameter.
+    This method is meant to fast and easy declearing of new instnaces with the same 
+    attrbitues for creating multiple scenarioes without writing all inputs again.
+
+    The instnace contains three main attributes which are of dictionary type:
+          - SimulationInput.constants - contains constans to be intepreted as GEKKO.Const
+          - SimulationInput.variables - contains variables to be intepreted as GEKKO.Var
+          - SimulationInput.equations -  contains equations to be intepreted as GEKKO.Intermediate. Keys of
+          that dictionary unlike previous two contains tuples with two strings representing the same equation.
+          The first representation is a human redable version of the equation, whereas the second is the same 
+          equation createad as an expression that can intepreted by python as an operation on instances attrbitues.
+
+    Methods:
+        - SimulationInput.get_inputs() - return a tuple that is unpacked by instance of SimpleBioreactor
+        - SimulationInput.__str__()
+        - SimulationInput.copy() - reaturn an instance of SimulationInput containing the same attrbitues as 
+        the instance in which the method was called.
+
     """
 
     def __init__(self,inputs=None,**kwargs):
@@ -131,12 +150,21 @@ class SimulationInput:
                     self.equations[key] = value
 
             # Now equations shall be translated into a python compatible string
-            for key in self.equations:
-                spaced_equation = fix_spacing(self.equations[key])
-                python_equation = cast_equation_to_python_str(spaced_equation)
-                # To retain more human redable version both equations
-                # are passed to a tuple which becomes a new value for a key
-                self.equations[key] = (spaced_equation, python_equation)
+            for key in self.equations: # REFRACTION NEEDED
+                # Some variable/constans might be not defined at init
+                # leading them to be None. This will rise and AttributeError
+                # at next step, thus try/except expression was set to avoid it.
+                # Nevertheless this might be change during later stages of development
+                # to force passing a defined minimal input to run a model, thus 
+                # checking inputs a step before passing them to the model.
+                try:
+                    spaced_equation = fix_spacing(self.equations[key])
+                    python_equation = cast_equation_to_python_str(spaced_equation)
+                    # To retain more human redable version both equations
+                    # are passed to a tuple which becomes a new value for a key
+                    self.equations[key] = (spaced_equation, python_equation)
+                except AttributeError:
+                    self.equations[key] = (None, None)
 
         # Passing defined inputs parameter is predominatlly used to copy
         # simulation inputs, thus this method of initialization is not
@@ -145,15 +173,36 @@ class SimulationInput:
             self.constants, self.variables, self.equations_specification = inputs
 
     def __str__(self):
+        def translate_none(value):
+            """
+            To avoid error when a key with None value existis in attrbitues,
+            it will be translated into a string.
+            """
+            if not value:
+                return("Undefined")
+            else:
+                return value
+        def get_number_of_defined_keys(atr_dict):
+            """
+            Returns a tuple of var/const, where ind 0 gives a number
+            of all keys within a dictionary and ind 1 a number of valeus
+            that are not None
+            """
+            all_keys = len(atr_dict)
+            defined_keys = len(list(filter(lambda x : x != None and x != (None, None), atr_dict.values())))
+            return(all_keys, defined_keys)
+
+        number_of_defined_const = get_number_of_defined_keys(self.constants)
+        number_of_defined_variables = get_number_of_defined_keys(self.variables)
+        number_of_defined_equations = get_number_of_defined_keys(self.equations)
         text = [
-            head := "SimulationInput instance \n",
-            spacer := "============\n",
-            subhead := f"Initialized with {len(self.constants)} constants, {len(self.variables)} variables, {len(self.equations)} equations \n",
-            const_list := [f"{key} {self.constants[key]} \n" for key in self.constants],
-            variables_list := [f"{key} {self.variables[key]} \n" for key in self.variables],
-            equations_list := [f"{key} {self.equations[key]} \n" for key in self.equations],
+            "SimulationInput instance ",
+            "=========================",
+            f"{number_of_defined_const[0]} constants, with {number_of_defined_const[1]} defined.",
+            f"{number_of_defined_variables[0]} variables, with {number_of_defined_variables[1]} defined.",
+            f"{number_of_defined_equations[0]} equations, with {number_of_defined_equations[1]} defined.",
         ]
-        return text
+        return "\n".join(text)
 
 
     def get_inputs(self):
