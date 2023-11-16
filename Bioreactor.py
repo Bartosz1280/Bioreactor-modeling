@@ -1,4 +1,4 @@
-# Class SimpleBioreactor
+# Class SimpleBioreactor (deprecated)
 #
 # General class to hold equations in OOP manner that is compatible
 # with GEKKO framework

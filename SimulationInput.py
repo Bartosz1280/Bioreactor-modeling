@@ -5,7 +5,6 @@
 #
 #
 # TODO : Implement fully __str__
-# refraction code on # REFRACTION NEEDED
 #
 
 
@@ -73,15 +72,13 @@ class SimulationInput:
                     ]
             # This list defines initial values of variables at t=0
             var_list = [
-                    "X_0","S_0","P_0"
+                    "X_0","S_0"
                     ]
             # This list defines formulas needed for a minimal model
             equations = [
-                    "mu", "X", "S"
+                    "mu", "dXdt", "dSdt"
                     ]
             
-            #equations_specification = ['growth_type', 'biomass_eq_type','substrate_eq_type']
-
             self.constants =  {key: 
                             (dict(kwargs.items())[key] if key in dict(kwargs.items()) else None)
                             for key in const_list
@@ -209,7 +206,7 @@ class SimulationInput:
         RETURN: tuple with simulations input
         """
 
-        return (self.constants, self.variables, self.equations_specification)
+        return (self.constants, self.variables, self.equations)
 
     def copy(self):
         """

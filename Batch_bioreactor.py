@@ -1,5 +1,11 @@
-import numpy as np
+# HEAD
+#
+# This is the first implementation of model in OOP way that is left to
+# help during new implementations, and will not be avaible in the final release
+
+
 from gekko import GEKKO
+import numpy as np
 import matplotlib.pyplot as plt
 
 class Batch_bioreactor:
