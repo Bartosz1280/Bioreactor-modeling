@@ -6,6 +6,7 @@
 #
 # TODO : Implement fully __str__
 # refraction code on # REFRACTION NEEDED
+#
 
 
 
@@ -38,8 +39,6 @@ class SimulationInput:
         - SimulationInput.add_equation(equation) - allows to adding a new equation after instance declaration
         in a way that can be intepreted by SimpleBioreactor as part of an input tuple.
         - SimulationInput.__str__()
-
-
     """
 
     def __init__(self,inputs=None,**kwargs):
@@ -49,6 +48,23 @@ class SimulationInput:
         # Setting parameter to None instead of zero is required for predictable and
         # fast validation of a GEKKO model. Later on  each parameter can  be manually
         # changed by altering attrbitues (dictionaries)
+
+        self.growth_models_pallet = {
+                    "monod_substrate" : "(mu_max * S) / (K_s + S)",
+                    "monod_substra_biomass" : "(mu_max * S * X) / (K_s +S)",
+                    "blackman" :"( mu_max * S ) / K_s",
+                    "tesseir" :"mu_max * e **( K_i ) * S",
+                    "moser" : "( mu_max * S ** n )/( K_s + S ** n )",
+                    "webb" : "( mu_max * S *( 1 + ( S / K_i ))) /( S + K_s + ( S ** 2/ K_i ))",
+                    "haldane" : "( mu_max * S)/( K_s + S + ( S**2 / K_i ))",
+                    "contois" : "( mu_max * S ) / ( K_s * X + S )",
+                    "aiba" : "( mu_max * ( 1- ( S / S_m ) ** n * ( S / ( S + K_s * (1 - S / S_m) ** m ))))",
+                    "powell" : "(( mu_max + m ) * S ) / ( K_s + S) - m",
+                    "verhulst" : "mu_max * ( 1 - ( X / X_m ))",
+                    "luong" : "mu_max *  ( S / ( K_s + S ) * (1 -(S / S_m) ** n))",
+                    "yano" : "mu_max / ( K_s + S + ( S ** 2 / K_1) + ( S ** 2/ K_2 ** 2))"
+                    }
+
         if not inputs:
             # This list defines constans that have a defined value and are treated as 
             # GEKKO Constans within the Bioreactor instance.
@@ -63,7 +79,7 @@ class SimulationInput:
             equations = [
                     "mu", "X", "S"
                     ]
-
+            
             #equations_specification = ['growth_type', 'biomass_eq_type','substrate_eq_type']
 
             self.constants =  {key: 
@@ -84,15 +100,21 @@ class SimulationInput:
             # the convention on naming var/con/equations for the 
             # correct assigment
             for key, value in kwargs.items():
+                # Detects initial value of a variable
                 if "_0" in key:
                     self.variables[key] = value
+                # Detects if pre-build growth model is requested
+                elif key.lower() in ["growth_type", "growth" , "growth_model"]:
+                    self.equations["mu"] = self.growth_models_pallet[value]
+                # Detects if contians is requested
                 elif "_" in key:
                     self.constants[key] = value
-                elif key == key.upper():
+                # Detects if an equation is passed
+                elif key == key.upper() or "dt" in key:
                     self.equations[key] = value
 
             # Now equations shall be translated into a python compatible string
-            for key in self.equations: # REFRACTION NEEDED
+            for key, value in self.equations.items(): # REFRACTION NEEDED
                 # Some variable/constans might be not defined at init
                 # leading them to be None. This will rise and AttributeError
                 # at next step, thus try/except expression was set to avoid it.
@@ -100,7 +122,7 @@ class SimulationInput:
                 # to force passing a defined minimal input to run a model, thus 
                 # checking inputs a step before passing them to the model.
                 try:
-                    spaced_equation = self._fix_spacing(self.equations[key])
+                    spaced_equation = self._fix_spacing(value)
                     python_equation = self._cast_equation_to_python_str(spaced_equation)
                     # To retain more human redable version both equations
                     # are passed to a tuple which becomes a new value for a key
@@ -151,6 +173,31 @@ class SimulationInput:
         return "\n".join(text)
 
 # Class methods
+    def change_growth_model(self, growth_model: str):
+        """
+        SimulationInput.change_growth_model(growth_model: str)
+
+            Method allows to change a growth model without defing a full 
+        equation, but calling it by a tag string. This call is mapped to
+        a pre-build growth models within a SimulationInput.growth_models_pallet
+        attribute. The function ensures that the euqation is passed correctly.
+
+        If desired model is not included in the attribute, it can be passed like
+        a regular equation using SimulationInput.add_equation() method.
+        """
+
+        try:
+            mu = self.growth_models_pallet[growth_model]
+            equation = self._fix_spacing(mu)
+            python_equation = self._cast_equation_to_python_str(equation)
+            # To retain more human redable version both equations
+            # are passed to a tuple which becomes a new value for a key
+            self.equations['mu'] = (equation, python_equation)
+
+        except KeyError:
+            # Raises a KeyError but with more informative message
+            raise KeyError(f"Requested {growth_model} is not implemented in pre-build models")
+
     def get_inputs(self):
         """
         SimulationInput.get_inputs()
@@ -207,6 +254,9 @@ class SimulationInput:
         # is raised with most probable cause of an error.
         try:
             variable , expression = equation.split("=")
+            # Removing empty spaces to overwrite a value instead of
+            # setting a new key.
+            variable = list(filter(lambda x : x != '', variable.split(" ")))[0]
         except ValueError:
             raise EquationError(f"{equation} appears to have multiple = " )
         # At the second stange function will ensure that  the passed equation has only one
