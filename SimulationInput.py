@@ -137,16 +137,6 @@ class SimulationInput:
 
     def __str__(self):
 
-        def translate_none(value): # CURRENTLY AND ORPHANT FUNCTION
-            """
-            To avoid error when a key with None value existis in attrbitues,
-            it will be translated into a string.
-            """
-            if not value:
-                return("Undefined")
-            else:
-                return value
-
         def get_number_of_defined_keys(atr_dict):
             """
             Returns a tuple of var/const, where ind 0 gives a number
@@ -157,16 +147,72 @@ class SimulationInput:
             defined_keys = len(list(filter(lambda x : x != None and x != (None, None), atr_dict.values())))
             return(all_keys, defined_keys)
 
+        def start_new_section(label: str, text: list):
+            "Alias function for creating heading for new sections"
+            text.append(f'\n{label}')
+            text.append("=========================")
+
         number_of_defined_const = get_number_of_defined_keys(self.constants)
         number_of_defined_variables = get_number_of_defined_keys(self.variables)
         number_of_defined_equations = get_number_of_defined_keys(self.equations)
+        
+        # Unspecified var/conts/equat will be passed to a corresponding list
+        # Next these list will be used for outputing information about not
+        # definined attributes.
+
+        unspec_const, unspec_var  =  list() , list()
+
+        # The outputed text is stored in text: list variable. Additional lines are appended to 
+        # the text variable. Their number and, form and contnet are dependent on kwargs
+        # specified on instance initialization
         text = [
             "SimulationInput instance ",
             "=========================",
+            # Fast check allowing how many variables, contains and equations are declated
+            # and how many of them are specified
             f"{number_of_defined_const[0]} constants, with {number_of_defined_const[1]} defined.",
             f"{number_of_defined_variables[0]} variables, with {number_of_defined_variables[1]} defined.",
             f"{number_of_defined_equations[0]} equations, with {number_of_defined_equations[1]} defined.",
         ]
+
+        start_new_section("Variables at t_0", text)
+
+        for key, value in self.variables.items():
+            if value:
+                text.append(f" {key} = {value}")
+            else: 
+                unspec_var.append(key)
+
+        start_new_section("Equations", text)
+
+        # Appending equations to the text variable.
+        #
+        # Human redable version of an equation is retrived from tuples (index 0)
+
+        for dependent_var, equations_tuple in self.equations.items():
+            if equations_tuple != (None,None):
+                equation = equations_tuple[0]
+                text.append(f" {dependent_var} = {equation}")
+            else:
+                text.append(f" {dependent_var}  is Undefined!")
+        start_new_section("Constans",text)
+
+        # Appending of constants to the text variable
+
+        for key, value in self.constants.items():
+            if value:
+                text.append(f" {key} = {value}")
+            else:
+                unspec_const.append(key)
+
+        if unspec_const != list():
+            start_new_section("Not specified constants", text)
+            text.append(" ;".join(unspec_const))
+
+        if unspec_var != list():
+            start_new_section("Not specified variables", text)
+            text.append(" ;".join(unspec_var))
+
         return "\n".join(text)
 
 # Class methods
