@@ -4,8 +4,7 @@
 # by class declatation
 #
 #
-# TODO : Implement fully __str__
-#
+# TODO : Checking var/const vs equations coherence
 
 
 

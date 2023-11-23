@@ -1,4 +1,8 @@
 test_*
 __pycache__/
 draft.py
-test_*
+*.lua
+Batch_bioreactor.py
+Bioreactor.py
+tests
+modeling.yml
