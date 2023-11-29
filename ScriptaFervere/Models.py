@@ -1,7 +1,7 @@
 # HEAD: Models.py
 #
 # File containing differnt models that interpreate SimulationInput to GEKKO
-# Currently the simples model is included
+# Currently the simplest model is included
 #
 # TODO Debug code, None variables are passed instead of being filtered out. It can be
 # reproduced by adding P_0 variable to SimulationInput defaults without further specification
@@ -13,14 +13,16 @@ import numpy as np
 from gekko import GEKKO
 import matplotlib.pyplot as plt
 import math
-
+import os
+import time
+from datetime import datetime
 
 class SimpleCulture:
     """
     Minimal model describing a culture biomass growth with a substrate constraint in
     a sigle batch mode.
     """
-    def __init__(self,  time_arr, simulation_input, name="SimpleCulture"):
+    def __init__(self,  time_arr, simulation_input, name="SimpleCulture",path=None):
 
         # Defining functions run on init
 
@@ -49,7 +51,7 @@ class SimpleCulture:
         def init_intermediates(equation_dict):
             "Sub function of __init__ for correct equations assgiment"
             for key, val in equation_dict.items():
-                if val != (None, None): # BUG that pass undefined variables to the model
+                if val[0] != None and val[1] != None: # BUG that pass undefined variables to the model
                     # values of equation_dict are tuple with human redable equation
                     # as the first value and python redable equation as second. 
                     # The second variant can be interpeted by GEKKO
@@ -106,6 +108,29 @@ class SimpleCulture:
         self.model.options.NODES = 3
         self.model.options.COLDSTART = 2
         self.model.options.CSV_WRITE = 0 # Change it to 1 or 2 to get reesults in .csv file
+
+        # The block below handles sourcing of the path for directory
+        # where results and temporary files are stores. It either accepects
+        # user specified path or creates a new directory to store all these files
+
+        # Handles user specified path
+        if path:
+            self.model._path = path
+
+        # In case path is not provided creates a new directory
+        else:
+            # New directory name constains class name, current date and time
+            # and _results suffix
+
+            # For ease of reading direcotry name components are splitted into
+            # separate variables and joined in next line
+            class_name = self.__name__
+            curr_date = {datetime.today().strftime('%y_%m_%d')}
+            curr_time = time.strftime("%H_%M_%S", time.localtime())
+
+            dir_name = f"{class_name}_{curr_date}_{curr_time}_results"
+            dir_path = os.path.join(os.getcwd(),dir_name)
+            os.mkdir(dir_path)
 
         self.id = name
         self._solved = False
