@@ -124,7 +124,7 @@ class SimpleCulture:
         self.model.options.SOLVER = 1
         self.model.options.NODES = 3
         self.model.options.COLDSTART = 2
-        self.model.options.CSV_WRITE = 0 # Change it to 1 or 2 to get reesults in .csv file
+       # self.model.options.CSV_WRITE = 0 # Change it to 1 or 2 to get reesults in .csv file
 
         # The block below handles sourcing of the path for directory
         # where results and temporary files are stores. It either accepects
@@ -174,10 +174,11 @@ class SimpleCulture:
         # Biomass maximization
         self.model.Obj(-self.X)
 
-    def solve(self):
+    def solve(self, open_folder = False):
         """
         Alias for SimpleCulture.model.solve(display=False) followed by
         SimpleCulture.model.open_folder()
         """
         self.model.solve(display=False)
-        self.model.open_folder()
+        if open_folder:
+            self.model.open_folder()
