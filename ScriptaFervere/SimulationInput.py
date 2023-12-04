@@ -5,6 +5,8 @@
 #
 #
 # TODO : Checking var/const vs equations coherence
+# TODO : Drop equation to secrect attribute and and make a function for displaying 
+# equations of the model
 
 
 
