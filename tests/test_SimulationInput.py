@@ -4,7 +4,7 @@
 # functionalities.c
 
 import pytest
-import os
+import ScriptaFervere
 from ScriptaFervere.SimulationInput import SimulationInput
 
 
@@ -31,7 +31,7 @@ def simple_initiation_test():
             'K_s': 0.0138, 'X_m': None, 'S_m': None,
             'K_1': None, 'K_2': None}
     assert test_SimulationInput.variables == {
-            'X_0': 0.005, 'S_0': 0.07}
+            'X_0': 0.005, 'S_0': 0.07, 'P_2': 1}
     assert test_SimulationInput.equations == {
         'mu': 
         (

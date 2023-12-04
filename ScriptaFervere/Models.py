@@ -11,7 +11,6 @@
 
 import numpy as np
 from gekko import GEKKO
-import matplotlib.pyplot as plt
 import math
 import os
 import time
@@ -28,14 +27,22 @@ class SimpleCulture:
 
         def init_constants(const_dict):
             "Sub function of __init__ used to asssignt constantsto attributes."
+
+            keys_to_remove = list()
             for key , val in const_dict.items():
                 # Not assigned constants are not pass to the model
                 # to avoid uncessery declarations within the self.model
                 if val:
                     setattr(self, key,  self.model.Const(value=val,name=key))
+                else:
+                    keys_to_remove.append(key)
+
+            for key in keys_to_remove:
+                const_dict.pop(key, None)
 
         def init_variables(variables_dict):
             "Sub function of __init__ for correct assgiment of variables to attributes"
+            keys_to_remove = list()
             for key, val in variables_dict.items():
                 if val:
                     variable_name = key.split("_0")[0]
@@ -47,9 +54,14 @@ class SimpleCulture:
                                 # of a simulation
                                 value=variables_dict[key], lb=0 ,name=variable_name)
                             )
+                else:
+                    keys_to_remove.append(key)
+            for key in keys_to_remove:
+                variables_dict.pop(key)
 
         def init_intermediates(equation_dict):
             "Sub function of __init__ for correct equations assgiment"
+            keys_to_remove = list()
             for key, val in equation_dict.items():
                 if val[0] != None and val[1] != None: # BUG that pass undefined variables to the model
                     # values of equation_dict are tuple with human redable equation
@@ -57,7 +69,11 @@ class SimpleCulture:
                     # The second variant can be interpeted by GEKKO
                     python_equation = val[1]
                     setattr(self, key, self.model.Intermediate(eval(python_equation)))
-                   
+                else:
+                    keys_to_remove.append(key)
+            for key in keys_to_remove:
+                equation_dict.pop(key)
+
         def init_equations(variables_dict: dict, equation_dict: dict):
             "Sub function of __init__ used to define ODEs to be solved and binding them with previously initiated variables"
 
@@ -113,6 +129,8 @@ class SimpleCulture:
         # where results and temporary files are stores. It either accepects
         # user specified path or creates a new directory to store all these files
 
+        self.id = name
+
         # Handles user specified path
         if path:
             self.model._path = path
@@ -124,15 +142,18 @@ class SimpleCulture:
 
             # For ease of reading direcotry name components are splitted into
             # separate variables and joined in next line
-            class_name = self.__name__
-            curr_date = {datetime.today().strftime('%y_%m_%d')}
-            curr_time = time.strftime("%H_%M_%S", time.localtime())
+            curr_date = datetime.today().strftime('%y_%m_%d')
+            curr_time = time.strftime("%H_%M", time.localtime())
 
-            dir_name = f"{class_name}_{curr_date}_{curr_time}_results"
+            dir_name = f"{self.id}_{curr_date}__{curr_time}_results"
             dir_path = os.path.join(os.getcwd(),dir_name)
-            os.mkdir(dir_path)
+            try:
+                os.mkdir(dir_path)
+                self.model._path = dir_path
+            except FileExistsError:
+                print(f"A {dir_name} already exist in the cwd, and will be used.")
+                self.model._path = dir_path
 
-        self.id = name
         self._solved = False
 
         # The prefered way of specifying inputs is by using SimulationInput
@@ -142,16 +163,18 @@ class SimpleCulture:
         
         init_constants(self._constants)
         init_variables(self._variables)
+        # DEBUGGING
+        import pdb; pdb.set_trace()
         init_intermediates(self._equations)
         init_equations(self._variables, self._equations)
-
 
         # Biomass maximization
         self.model.Obj(-self.X)
 
     def solve(self):
         """
-        Alias for SimpleCulture.model.solve(display=False)
+        Alias for SimpleCulture.model.solve(display=False) followed by
+        SimpleCulture.model.open_folder()
         """
         self.model.solve(display=False)
         self.model.open_folder()

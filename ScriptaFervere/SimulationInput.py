@@ -71,7 +71,7 @@ class SimulationInput:
                     ]
             # This list defines initial values of variables at t=0
             var_list = [
-                    "X_0","S_0"
+                    "X_0","S_0","P_0"
                     ]
             # This list defines formulas needed for a minimal model
             equations = [
