@@ -3,10 +3,6 @@
 # File containing differnt models that interpreate SimulationInput to GEKKO
 # Currently the simplest model is included
 #
-# TODO Debug code, None variables are passed instead of being filtered out. It can be
-# reproduced by adding P_0 variable to SimulationInput defaults without further specification
-# TODO Comment code and write dockstrings
-# TODO Fix issue connected to results.json
 
 
 
@@ -132,38 +128,6 @@ class SimpleCulture:
 
         self.id = name
 
-        # A comment chunk intented to create a direcotory in which the  data are stored
-        # however for now it cause some troubles with reading results.json file, thus it
-        # requires further reworking.
-
-         ## Handles user specified path
-         #if path:
-             #self.model._path = path
- #
-         ## In case path is not provided creates a new directory
-         #else:
-             ## New directory name constains class name, current date and time
-             ## and _results suffix
- #
-             ## For ease of reading direcotry name components are splitted into
-             ## separate variables and joined in next line
-             #curr_date = datetime.today().strftime('%y_%m_%d')
-             #curr_time = time.strftime("%H_%M", time.localtime())
- #
-             #dir_name = f"{self.id}_{curr_date}__{curr_time}_results"
-             #dir_path = os.path.join(os.getcwd(),dir_name)
-             #try:
-                 #os.mkdir(dir_path)
-                 #self.model._path = dir_path
-             #except FileExistsError:
-                 #print(f"A {dir_name} already exist in the cwd, and will be used.")
-                 #self.model._path = dir_path
-
-        self._solved = False
-
-        # The prefered way of specifying inputs is by using SimulationInput
-        # instance, thus to avoid manipulations on inputs within the SimpleCulture
-        # all inputs are caseted to secret attributes.
         self._constants, self._variables, self._equations = simulation_input
         
         init_constants(self._constants)
@@ -172,13 +136,13 @@ class SimpleCulture:
         init_equations(self._variables, self._equations)
 
         # Biomass maximization
-        self.model.Obj(-self.X)
+        self.model.Maximize(self.X)
 
-    def solve(self, open_folder = False):
+    def solve(self, open_folder = False, GUI=False):
         """
         Alias for SimpleCulture.model.solve(display=False) followed by
         SimpleCulture.model.open_folder()
         """
-        self.model.solve(display=False)
+        self.model.solve(display=False, GUI=GUI)
         if open_folder:
             self.model.open_folder()

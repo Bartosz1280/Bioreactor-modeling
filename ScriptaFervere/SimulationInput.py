@@ -88,7 +88,7 @@ class SimulationInput:
                                 (dict(kwargs.items())[key] if key in dict(kwargs.items()) else None)
                                 for key in var_list
                                 }
-            self.equations =  {key: 
+            self._equations =  {key: 
                                 (dict(kwargs.items())[key] if key in dict(kwargs.items()) else None)
                                 for key in equations
                                 }
@@ -103,16 +103,16 @@ class SimulationInput:
                     self.variables[key] = value
                 # Detects if pre-build growth model is requested
                 elif key.lower() in ["growth_type", "growth" , "growth_model"]:
-                    self.equations["mu"] = self.growth_models_pallet[value]
+                    self._equations["mu"] = self.growth_models_pallet[value]
                 # Detects if contians is requested
                 elif "_" in key:
                     self.constants[key] = value
                 # Detects if an equation is passed
                 elif key == key.upper() or "dt" in key:
-                    self.equations[key] = value
+                    self._equations[key] = value
 
             # Now equations shall be translated into a python compatible string
-            for key, value in self.equations.items(): # REFRACTION NEEDED
+            for key, value in self._equations.items(): # REFRACTION NEEDED
                 # Some variable/constans might be not defined at init
                 # leading them to be None. This will rise and AttributeError
                 # at next step, thus try/except expression was set to avoid it.
@@ -124,15 +124,15 @@ class SimulationInput:
                     python_equation = self._cast_equation_to_python_str(spaced_equation)
                     # To retain more human redable version both equations
                     # are passed to a tuple which becomes a new value for a key
-                    self.equations[key] = (spaced_equation, python_equation)
+                    self._equations[key] = (spaced_equation, python_equation)
                 except AttributeError:
-                    self.equations[key] = (None, None)
+                    self._equations[key] = (None, None)
 
         # Passing defined inputs parameter is predominatlly used to copy
         # simulation inputs, thus this method of initialization is not
         # meant for ad hoc instance declation.
         else:
-            self.constants, self.variables, self.equations_specification = inputs
+            self.constants, self.variables, self._equations = inputs
 
 # End of __init__
 
@@ -155,7 +155,7 @@ class SimulationInput:
 
         number_of_defined_const = get_number_of_defined_keys(self.constants)
         number_of_defined_variables = get_number_of_defined_keys(self.variables)
-        number_of_defined_equations = get_number_of_defined_keys(self.equations)
+        number_of_defined_equations = get_number_of_defined_keys(self._equations)
         
         # Unspecified var/conts/equat will be passed to a corresponding list
         # Next these list will be used for outputing information about not
@@ -190,7 +190,7 @@ class SimulationInput:
         #
         # Human redable version of an equation is retrived from tuples (index 0)
 
-        for dependent_var, equations_tuple in self.equations.items():
+        for dependent_var, equations_tuple in self._equations.items():
             if equations_tuple != (None,None):
                 equation = equations_tuple[0]
                 text.append(f" {dependent_var} = {equation}")
@@ -236,7 +236,7 @@ class SimulationInput:
             python_equation = self._cast_equation_to_python_str(equation)
             # To retain more human redable version both equations
             # are passed to a tuple which becomes a new value for a key
-            self.equations['mu'] = (equation, python_equation)
+            self._equations['mu'] = (equation, python_equation)
 
         except KeyError:
             # Raises a KeyError but with more informative message
@@ -253,7 +253,7 @@ class SimulationInput:
         RETURN: tuple with simulations input
         """
 
-        return (self.constants, self.variables, self.equations)
+        return (self.constants, self.variables, self._equations)
 
     def copy(self):
         """
@@ -312,7 +312,7 @@ class SimulationInput:
         python_equation = self._cast_equation_to_python_str(equation)
         # To retain more human redable version both equations
         # are passed to a tuple which becomes a new value for a key
-        self.equations[variable] = (equation, python_equation)
+        self._equations[variable] = (equation, python_equation)
         print(f"> {variable} = {equation} was added")
         
 # Secret functions
