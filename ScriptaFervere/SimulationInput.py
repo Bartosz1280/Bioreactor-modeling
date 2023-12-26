@@ -51,7 +51,7 @@ class SimulationInput:
 
         self.growth_models_pallet = {
                     "monod_substrate" : "(mu_max * S) / (K_s + S)",
-                    "monod_substra_biomass" : "(mu_max * S * X) / (K_s +S)",
+                    "monod_biomass" : "(mu_max * S * X) / (K_s +S)",
                     "blackman" :"( mu_max * S ) / K_s",
                     "tesseir" :"mu_max * e **( K_i ) * S",
                     "moser" : "( mu_max * S ** n )/( K_s + S ** n )",
